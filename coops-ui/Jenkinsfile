@@ -154,7 +154,11 @@ if( run_pipeline ) {
 
             echo "Building the application artifacts ..."
             def build = openshift.selector("bc", "${BUILD_CONFIG}")
-            build.startBuild().logs("-f")
+            timeout (5) {
+              build.untilEach(1) {
+                return (it.object().status.phase == "Complete")
+              }
+            }
           }
         }
       }
@@ -167,7 +171,11 @@ if( run_pipeline ) {
 
             echo "Building the ${IMAGESTREAM_NAME} image ..."
             def build = openshift.selector("bc", "${CHAINED_BUILD_CONFIG}")
-            build.startBuild().logs("-f")
+            timeout (5) {
+              build.untilEach(1) {
+                return (it.object().status.phase == "Complete")
+              }
+            }
 
             def IMAGE_HASH_DEBUG = getImageTagHash("${IMAGESTREAM_NAME}")
             echo "Completed build, image is: ${IMAGE_HASH_DEBUG}"
