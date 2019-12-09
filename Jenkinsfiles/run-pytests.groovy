@@ -20,11 +20,16 @@
 //   See: https://docs.openshift.com/container-platform/3.9/using_images/other_images/jenkins.html for a complete list of JENKINS env vars
 
 // define constants - values sent in as env vars from whatever calls this pipeline
-def NAMESPACE = namespace
-def TAG_NAME = tag
-def COMPONENT_NAME = component
-def COMPONENT_TAG = component_tag
-def DB_TYPE = db_type
+// def NAMESPACE = namespace
+// def TAG_NAME = tag
+// def COMPONENT_NAME = component
+// def COMPONENT_TAG = component_tag
+// def DB_TYPE = db_type
+def NAMESPACE = 'gl2uos'
+def TAG_NAME = 'dev'
+def COMPONENT_NAME = 'legal-api'
+def COMPONENT_TAG = 'dev'
+def DB_TYPE = 'PG'
 
 // set in setup stage (will be set to current values for running pods)
 def DB_USERNAME
