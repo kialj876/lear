@@ -80,7 +80,26 @@ class ListFilingResource(Resource):
             else:
                 filing_json = rv.json
                 filing_json['filing']['documents'] = DocumentMetaService().get_documents(filing_json)
+            if filing_json['filing']['header']['status'] == Filing.Status.PENDING.value:
+                try:
+                    headers = {
+                        'Authorization': f'Bearer {jwt.get_token_auth_header()}',
+                        'Content-Type': 'application/json'
+                    }
+                    payment_svc_url = current_app.config.get('PAYMENT_SVC_URL')
+                    pay_response = requests.get(
+                        url=f'{payment_svc_url}/{filing_json["filing"]["header"]["paymentToken"]}',
+                        headers=headers
+                    )
+                    pay_details = {
+                        'isPaymentActionRequired': pay_response.json().get('isPaymentActionRequired', False),
+                        'paymentMethod': pay_response.json().get('paymentMethod', '')
+                    }
+                    filing_json['filing']['header'].update(pay_details)
 
+                except (exceptions.ConnectionError, exceptions.Timeout) as err:
+                    current_app.logger.error(
+                        f'Payment connection failure for getting {identifier} filing payment details. ', err)
             return jsonify(filing_json)
 
         business = Business.find_by_identifier(identifier)
@@ -180,14 +199,11 @@ class ListFilingResource(Resource):
 
         # complete filing
         response, response_code = ListFilingResource.complete_filing(business, filing, draft, payment_account_id)
-        if response and (response_code != HTTPStatus.CREATED or filing.source == Filing.Source.COLIN.value):
+        if response:
             return response, response_code
 
         # all done
-        filing_json = filing.json
-        if response:
-            filing_json['filing']['header'].update(response)
-        return jsonify(filing_json),\
+        return jsonify(filing.json),\
             (HTTPStatus.CREATED if (request.method == 'POST') else HTTPStatus.ACCEPTED)
 
     @staticmethod
@@ -309,17 +325,16 @@ class ListFilingResource(Resource):
             ListFilingResource._check_and_update_nr(filing)
 
             filing_types = ListFilingResource._get_filing_types(business, filing.filing_json)
-            pay_msg, pay_code = ListFilingResource._create_invoice(business,
+            err_msg, err_code = ListFilingResource._create_invoice(business,
                                                                    filing,
                                                                    filing_types,
                                                                    jwt,
                                                                    payment_account_id)
-            if pay_msg and pay_code != HTTPStatus.CREATED:
+            if err_code:
                 reply = filing.json
-                reply['errors'] = [pay_msg, ]
-                return jsonify(reply), pay_code
+                reply['errors'] = [err_msg, ]
+                return jsonify(reply), err_code
             ListFilingResource._set_effective_date(business, filing)
-            return pay_msg, pay_code
 
         return None, None
 
@@ -632,7 +647,7 @@ class ListFilingResource(Resource):
             filing.payment_status_code = rv.json().get('statusCode', '')
             filing.payment_account = payment_account_id
             filing.save()
-            return {'isPaymentActionRequired': rv.json().get('isPaymentActionRequired', False)}, HTTPStatus.CREATED
+            return None, None
 
         if rv.status_code == HTTPStatus.BAD_REQUEST:
             # Set payment error type used to retrieve error messages from pay-api
