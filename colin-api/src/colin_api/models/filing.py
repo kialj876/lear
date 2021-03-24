@@ -237,7 +237,7 @@ class Filing:
                 event_type=event_type
             )
         except Exception as err:
-            current_app.logger.error('Error in filing: Failed to create new event.')
+            current_app.logger.error(f'_get_event_id error: {err.with_traceback(None)}')
             raise err
         return event_id
 
@@ -373,7 +373,7 @@ class Filing:
                 email_address=filing.get_email()
             )
         except Exception as err:
-            current_app.logger.error(err.with_traceback(None))
+            current_app.logger.error(f'_insert_filing_user error: {err.with_traceback(None)}')
             raise err
 
     @classmethod
@@ -791,12 +791,16 @@ class Filing:
             # create new filing
             cls._insert_filing(cursor=cursor, filing=filing, ar_date=ar_date, agm_date=agm_date)
 
+            print('filing type: ', filing.filing_type)
             if filing.filing_type == 'correction':
                 cls._process_correction(cursor, business, filing, corp_num)
             else:
                 ar_text = cls._process_ar(cursor, filing, corp_num, ar_date, agm_date)
+                print(3.1)
                 dir_text = cls._process_directors(cursor, filing, business, corp_num)
+                print(3.2)
                 office_text = cls._process_office(cursor=cursor, filing=filing)
+                print(3.3)
 
                 if parties := filing.body.get('parties', []):
                     for party in parties:
@@ -804,24 +808,27 @@ class Filing:
                                                 party=party,
                                                 business=business,
                                                 event_id=filing.event_id)
+                print(3.4)
                 # add shares if not coop
                 cls._process_share_structure(cursor, filing, corp_num)
+                print(3.5)
                 if filing.body.get('nameRequest'):
                     cls._create_corp_name(cursor, filing, corp_num)
-
+                print(3.6)
                 # add name translations
                 cls._process_name_translations(cursor, filing, corp_num)
+                print(3.7)
 
                 # alter corp type
                 if alter_corp_type := filing.body.get('business', {}).get('legalType'):
                     Business.update_corp_type(cursor=cursor, corp_num=corp_num, corp_type=alter_corp_type)
-
+                print(3.8)
                 if filing.body.get('provisionsRemoved'):
                     provisions = Business.get_corp_restriction(cursor=cursor, event_id=None, corp_num=corp_num)
                     if provisions and provisions['restriction_ind'] == 'Y':
                         Business.end_current_corp_restriction(
                             cursor=cursor, event_id=filing.event_id, corp_num=corp_num)
-
+                print(3.9)
                 if filing.body.get('hasProvisions'):
                     provisions = Business.get_corp_restriction(cursor=cursor, event_id=None, corp_num=corp_num)
                     if provisions and provisions['restriction_ind'] == 'N':
@@ -838,14 +845,16 @@ class Filing:
 
                 # update corporation record
                 is_annual_report = filing.filing_type == 'annualReport'
+                print(4)
                 Business.update_corporation(
                     cursor=cursor, corp_num=corp_num, date=agm_date, annual_report=is_annual_report)
-
+                print(5)
+            print(6)
             return filing.event_id
 
         except Exception as err:
             # something went wrong, roll it all back
-            current_app.logger.error(err.with_traceback(None))
+            current_app.logger.error(f'add_filing error: {err.with_traceback(None)}')
             raise err
 
     @classmethod

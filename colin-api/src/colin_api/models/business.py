@@ -258,11 +258,13 @@ class Business:  # pylint: disable=too-many-instance-attributes
     def create_corporation(cls, con, filing_info: Dict):
         """Insert a new business from an incorporation filing."""
         try:
+            print(filing_info)
             business = Business()
             business.corp_name = filing_info['business']['legalName']
             business.corp_num = filing_info['business']['identifier']
             business.founding_date = convert_to_pacific_time(filing_info['header']['learEffectiveDate'])
-
+            print(filing_info['business']['legalType'])
+            print(cls.CORP_TYPE_CONVERSION[cls.LearBusinessTypes.BCOMP.value])
             if filing_info['business']['legalType'] in cls.CORP_TYPE_CONVERSION[cls.LearBusinessTypes.BCOMP.value]:
                 business.corp_num = business.corp_num[-7:]
                 business.corp_type = Business.TypeCodes.BCOMP.value
@@ -272,6 +274,9 @@ class Business:  # pylint: disable=too-many-instance-attributes
             cursor = con.cursor()
 
             # Expand query as NR data/ business info becomes more aparent
+            print('here')
+            print(business.corp_num)
+            print(business.corp_type)
             cursor.execute(
                 """
                 insert into CORPORATION (CORP_NUM, CORP_TYP_CD, RECOGNITION_DTS)

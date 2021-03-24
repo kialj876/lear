@@ -141,7 +141,7 @@ class Address:  # pylint: disable=too-many-instance-attributes; need all these f
 
             country_typ_cd = pycountry.countries.search_fuzzy(address_info.get('addressCountry'))[0].alpha_2
         except Exception as err:
-            current_app.logger.error(err.with_traceback(None))
+            current_app.logger.error(f'create_new_address error: {err.with_traceback(None)}')
             raise err
 
         try:

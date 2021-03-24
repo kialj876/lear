@@ -128,6 +128,7 @@ class FilingInfo(Resource):
 
             # Filter out null-values in the filing_list dictionary
             filing_list = {k: v for k, v in filing_list.items() if filing_list[k]}
+            print('filing list: ', filing_list)
             try:
                 # get db connection and start a session, in case we need to roll back
                 con = DB.connection
@@ -182,9 +183,9 @@ class FilingInfo(Resource):
             filing.filing_date = filing.header['date']
             filing.filing_type = filing_type
             filing.body = filing_list[filing_type]
+            print('body: ', filing.body)
             # get utc lear effective date and convert to pacific time for insert into oracle
             filing.effective_date = convert_to_pacific_time(filing.header['learEffectiveDate'])
-
             if filing_type != 'incorporationApplication':
                 filing.business = Business.find_by_identifier(identifier, corp_types, con)
             else:
