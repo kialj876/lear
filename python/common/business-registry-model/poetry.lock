@@ -1533,11 +1533,7 @@ typing-extensions = {version = ">=4.4.0", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "registry_schemas"
-<<<<<<< HEAD
 version = "2.18.53"
-=======
-version = "2.18.52"
->>>>>>> 057f10203 (Updates for receiver filing)
 description = "A short description of the project"
 optional = false
 python-versions = ">=3.6"
